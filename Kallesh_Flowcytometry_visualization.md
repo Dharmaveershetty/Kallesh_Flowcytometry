@@ -12,6 +12,8 @@ library ("scatterplot3d")
 View(A1_PT21_PRE_VEN_092016_Mcl1_BCLxL_Bcl2_BIM) #View Data file 
 
 
+
+
 ## Creating two data subsets (pre & post) with 3 selected variables each
 ### Selecting the required variables
 Variables <- c ("MCL,BAX AF488-Alexa Fluor™ 488-A", "Bcl-2 PE-R-PE-A", "IgG Rb AF594-AF594-A")
