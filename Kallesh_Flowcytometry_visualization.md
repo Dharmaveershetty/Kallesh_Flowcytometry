@@ -9,8 +9,9 @@ library ("scatterplot3d")
 
 ### Import data using the import tab in RStudio
 View(A1_PT21_PRE_VEN_092016_Mcl1_BCLxL_Bcl2_BIM) #View Data file after 
-                                                  changing the 'dash' and 'space' symbols to 'underscore'
-                                                  deleting the brackets
+                                                  changing the 'dash' and 'space'
+                                                  symbols to 'underscore'
+                                                  and deleting the 'brackets'
 
 ## DATA REARRANGEMENT (Creating two data subsets (pre & post) with 3 selected variables each)
 
@@ -100,9 +101,10 @@ P21 <- rbind (P21.pre, P21.post)
 P29 <- rbind (P29.pre, P29.post)
 P31 <- rbind (P31.pre, P31.post)
 
-## 3d Scatterplot
 
-### Creating different shapes and colors for pre and post data
+## 3D SCATTERPLOTS
+
+### Individual
 
 library (scatterplot3d)
 with(P12,
@@ -154,4 +156,5 @@ with(P31,
                  zlab="IgG"
                  ))
 
+### Normalized Group 3D Scatter Plot
 
