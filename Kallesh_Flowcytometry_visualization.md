@@ -101,6 +101,44 @@ P21 <- rbind (P21.pre, P21.post)
 P29 <- rbind (P29.pre, P29.post)
 P31 <- rbind (P31.pre, P31.post)
 
+### Normalizing the individual patient datasets with the patient median value
+
+#### Median
+median.MCL.P12 <- median (P12$MCL)
+median.MCL.P21 <- median (P21$MCL)
+median.MCL.P29 <- median (P29$MCL)
+median.MCL.P31 <- median (P31$MCL)
+
+median.BCL.P12 <- median (P12$BCL)
+median.BCL.P21 <- median (P21$BCL)
+median.BCL.P29 <- median (P29$BCL)
+median.BCL.P31 <- median (P31$BCL)
+
+median.IgG.P12 <- median (P12$IgG)
+median.IgG.P21 <- median (P21$IgG)
+median.IgG.P29 <- median (P29$IgG)
+median.IgG.P31 <- median (P31$IgG)
+
+#### Normalized Values (adding a new variable)
+P12$MCL_n <- P12$MCL/median.MCL.P12
+P12$BCL_n <- P12$BCL/median.BCL.P12
+P12$IgG_n <- P12$IgG/median.IgG.P12
+
+P21$MCL_n <- P21$MCL/median.MCL.P21
+P21$BCL_n <- P21$BCL/median.BCL.P21
+P21$IgG_n <- P21$IgG/median.IgG.P21
+
+P29$MCL_n <- P29$MCL/median.MCL.P29
+P29$BCL_n <- P29$BCL/median.BCL.P29
+P29$IgG_n <- P29$IgG/median.IgG.P29
+
+P31$MCL_n <- P31$MCL/median.MCL.P31
+P31$BCL_n <- P31$BCL/median.BCL.P31
+P31$IgG_n <- P31$IgG/median.IgG.P31
+
+#### Merged Group Dataset with normalized values
+P_All <- rbind (P12, P21, P29, P31)
+
 
 ## 3D SCATTERPLOTS
 
@@ -158,3 +196,14 @@ with(P31,
 
 ### Normalized Group 3D Scatter Plot
 
+library (scatterplot3d)
+with(P_All,
+   scatterplot3d(MCL,
+                 BCL,
+                 IgG,
+                 color=Status,
+                 main="All Patients_Normalized_Values",
+                 xlab="MCL_n",
+                 ylab="BCL_n",
+                 zlab="IgG_n"
+                 ))
