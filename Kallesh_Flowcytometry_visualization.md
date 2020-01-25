@@ -6,9 +6,11 @@ install.packages ("scatterplot3d")
 library ("scatterplot3d")
 
 
+
 ## Data importation
 ### Import data using the import tab in RStudio
 View(A1_PT21_PRE_VEN_092016_Mcl1_BCLxL_Bcl2_BIM) #View Data file 
+
 
 ## Creating two data subsets (pre & post) with 3 selected variables each
 ### Selecting the required variables
@@ -34,6 +36,7 @@ P21.pre$Status <- rep("red",nrow(P21.pre))
 P21.post$Status <- rep("blue",nrow(P21.post))
 ### Merging the two datasets
 P21 <- rbind (P21.pre, P21.post)
+
 
 
 ## 3d Scatterplot
