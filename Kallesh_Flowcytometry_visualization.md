@@ -4,23 +4,32 @@
 install.packages ("scatterplot3d")
 library ("scatterplot3d")
 
-## DATA MANIPULATIN
+## DATA MANIPULATION
 ### Import and view data through the environment window in RStudio
 ### Re-arrange, rename, & normalize (percentile transformation) patient data
 
-P12_Pre <- P12_Pre [-1,c(7,14,15)]            #delete 1st row #select 7,14,15 columns
-colnames (P12_Pre) <- c("MCL","BCL","IgG")    #rename column names
-P12_Pre$Stage <- "Red"                        #new column with indicator color (pre/post)
-P12_Post <- P12_Post [-1,c(7,14,15)]          #delete 1st row #select 7,14,15 columns
-colnames (P12_Post) <- c("MCL","BCL","IgG")   #rename column names
-P12_Post$Stage <- "Blue"                      #new column with indicator color (pre/post)
-P12 <- rbind (P12_Pre, P12_Post)              #binding (merging) the pre and post data
-P12$MCL <- as.numeric(as.character(P12$MCL))  #Converting MCL from factor into numerical
-P12$BCL <- as.numeric(as.character(P12$BCL))  #Converting BCL from factor into numerical
-P12$IgG <- as.numeric(as.character(P12$IgG))  #Converting IgG from factor into numerical
-P12$MCL_p <- ecdf(P12$MCL)(P12$MCL)           #Creating a percentile variable for MCL
-P12$BCL_p <- ecdf(P12$BCL)(P12$BCL)           #Creating a percentile variable for MCL
-P12$IgG_p <- ecdf(P12$IgG)(P12$IgG)           #Creating a percentile variable for MCL
+P12_Pre <- P12_Pre [-1,c(7,14,15)]             #delete 1st row #select 7,14,15 columns
+colnames (P12_Pre) <- c("MCL","BCL","IgG")     #rename column names
+P12_Pre$Stage <- "Red"                         #new column with indicator color (pre/post)
+P12_Post <- P12_Post [-1,c(7,14,15)]           #delete 1st row #select 7,14,15 columns
+colnames (P12_Post) <- c("MCL","BCL","IgG")    #rename column names
+P12_Post$Stage <- "Blue"                       #new column with indicator color (pre/post)
+P12 <- rbind (P12_Pre, P12_Post)               #binding (merging) the pre and post data
+P12$MCL <- as.numeric(as.character(P12$MCL))   #Converting MCL from factor into numerical
+P12$BCL <- as.numeric(as.character(P12$BCL))   #Converting BCL from factor into numerical
+P12$IgG <- as.numeric(as.character(P12$IgG))   #Converting IgG from factor into numerical
+P12$MCL_p <- ecdf(P12$MCL)(P12$MCL)            #Creating a percentile variable for MCL
+P12$BCL_p <- ecdf(P12$BCL)(P12$BCL)            #Creating a percentile variable for MCL
+P12$IgG_p <- ecdf(P12$IgG)(P12$IgG)            #Creating a percentile variable for MCL
+P12$MCL_r <- ifelse(P12$MCL_p <= 0.33, 'Low',  #Categorizing data
+         ifelse(P12$MCL_p <= 0.66, 'Medium', 
+         'High'))
+P12$BCL_r <- ifelse(P12$BCL_p <= 0.33, 'Low',   
+         ifelse(P12$BCL_p <= 0.66, 'Medium', 
+         'High'))
+P12$IgG_r <- ifelse(P12$IgG_p <= 0.33, 'Low',  
+         ifelse(P12$IgG_p <= 0.66, 'Medium', 
+         'High'))
 
 P21_Pre <- P21_Pre [-1,c(7,14,15)]            #Similar data manipulation for P21
 colnames (P21_Pre) <- c("MCL","BCL","IgG")    
@@ -34,7 +43,16 @@ P21$BCL <- as.numeric(as.character(P21$BCL))
 P21$IgG <- as.numeric(as.character(P21$IgG))  
 P21$MCL_p <- ecdf(P21$MCL)(P21$MCL)           
 P21$BCL_p <- ecdf(P21$BCL)(P21$BCL)           
-P21$IgG_p <- ecdf(P21$IgG)(P21$IgG)  
+P21$IgG_p <- ecdf(P21$IgG)(P21$IgG)
+P21$MCL_r <- ifelse(P21$MCL_p <= 0.33, 'Low',
+         ifelse(P21$MCL_p <= 0.66, 'Medium', 
+         'High'))
+P21$BCL_r <- ifelse(P21$BCL_p <= 0.33, 'Low',   
+         ifelse(P21$BCL_p <= 0.66, 'Medium', 
+         'High'))
+P21$IgG_r <- ifelse(P21$IgG_p <= 0.33, 'Low',  
+         ifelse(P21$IgG_p <= 0.66, 'Medium', 
+         'High'))
 
 P29_Pre <- P29_Pre [-1,c(7,14,15)]            #Similar data manipulation for P29
 colnames (P29_Pre) <- c("MCL","BCL","IgG")    
@@ -49,6 +67,15 @@ P29$IgG <- as.numeric(as.character(P29$IgG))
 P29$MCL_p <- ecdf(P29$MCL)(P29$MCL)           
 P29$BCL_p <- ecdf(P29$BCL)(P29$BCL)           
 P29$IgG_p <- ecdf(P29$IgG)(P29$IgG)  
+P29$MCL_r <- ifelse(P29$MCL_p <= 0.33, 'Low',
+         ifelse(P29$MCL_p <= 0.66, 'Medium', 
+         'High'))
+P29$BCL_r <- ifelse(P29$BCL_p <= 0.33, 'Low',   
+         ifelse(P29$BCL_p <= 0.66, 'Medium', 
+         'High'))
+P29$IgG_r <- ifelse(P29$IgG_p <= 0.33, 'Low',  
+         ifelse(P29$IgG_p <= 0.66, 'Medium', 
+         'High'))
 
 P31_Pre <- P31_Pre [-1,c(7,14,15)]            #Similar data manipulation for P31
 colnames (P31_Pre) <- c("MCL","BCL","IgG")    
@@ -62,7 +89,16 @@ P31$BCL <- as.numeric(as.character(P31$BCL))
 P31$IgG <- as.numeric(as.character(P31$IgG))  
 P31$MCL_p <- ecdf(P31$MCL)(P31$MCL)           
 P31$BCL_p <- ecdf(P31$BCL)(P31$BCL)           
-P31$IgG_p <- ecdf(P31$IgG)(P31$IgG)  
+P31$IgG_p <- ecdf(P31$IgG)(P31$IgG)
+P31$MCL_r <- ifelse(P31$MCL_p <= 0.33, 'Low',
+         ifelse(P31$MCL_p <= 0.66, 'Medium', 
+         'High'))
+P31$BCL_r <- ifelse(P31$BCL_p <= 0.33, 'Low',   
+         ifelse(P31$BCL_p <= 0.66, 'Medium', 
+         'High'))
+P31$IgG_r <- ifelse(P31$IgG_p <= 0.33, 'Low',  
+         ifelse(P31$IgG_p <= 0.66, 'Medium', 
+         'High'))
 
 P71_Pre <- P71_Pre [-1,c(7,14,15)]            #Similar data manipulation for P71
 colnames (P71_Pre) <- c("MCL","BCL","IgG")    
@@ -76,19 +112,23 @@ P71$BCL <- as.numeric(as.character(P71$BCL))
 P71$IgG <- as.numeric(as.character(P71$IgG))  
 P71$MCL_p <- ecdf(P71$MCL)(P71$MCL)           
 P71$BCL_p <- ecdf(P71$BCL)(P71$BCL)           
-P71$IgG_p <- ecdf(P71$IgG)(P71$IgG)  
+P71$IgG_p <- ecdf(P71$IgG)(P71$IgG)
+P71$MCL_r <- ifelse(P71$MCL_p <= 0.33, 'Low',
+         ifelse(P71$MCL_p <= 0.66, 'Medium', 
+         'High'))
+P71$BCL_r <- ifelse(P71$BCL_p <= 0.33, 'Low',   
+         ifelse(P71$BCL_p <= 0.66, 'Medium', 
+         'High'))
+P71$IgG_r <- ifelse(P71$IgG_p <= 0.33, 'Low',  
+         ifelse(P71$IgG_p <= 0.66, 'Medium', 
+         'High'))
 
 All <- rbind (P12,P21,P29,P31,P71)              #binding (merging) the multiple patient data
-All$MCL_r <- within (All, All$MCL_r <- ifelse (MCL_p<=0.33, 'L',
-                            ifelse (MCL_p>0.66, 'H',
-                              ifelse ('M'))))
 
 
+## 3D SCATTERPLOTS (CONTINUOUS DATA)
 
-
-## 3D SCATTERPLOTS
-
-### Individual & All Patients with non-transformed data
+### Patients (Individual & combined) with non-transformed data
 
 library (scatterplot3d)
 with(P12,
@@ -164,7 +204,7 @@ with(All,
                  zlab="IgG"
                  ))
 
-### Individual & All Patients with percentile-transformed data
+### Patients (Individual & combined) with percentile-transformed data
 
 library (scatterplot3d)
 with(P12,
