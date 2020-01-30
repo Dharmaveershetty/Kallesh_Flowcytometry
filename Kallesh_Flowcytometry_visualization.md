@@ -3,6 +3,8 @@
 ## PACKAGES (INSTALLATION AND LOADING)
 install.packages ("scatterplot3d")
 library ("scatterplot3d")
+install.packages ("ggplot2")
+library("ggplot2")
 
 ## DATA MANIPULATION
 ### Import and view data through the environment window in RStudio
@@ -15,6 +17,7 @@ P12_Post <- P12_Post [-1,c(7,14,15)]           #delete 1st row #select 7,14,15 c
 colnames (P12_Post) <- c("MCL","BCL","IgG")    #rename column names
 P12_Post$Stage <- "Blue"                       #new column with indicator color (pre/post)
 P12 <- rbind (P12_Pre, P12_Post)               #binding (merging) the pre and post data
+P12$Patient <- "P12"                           #Creating Patient identifier variable
 P12$MCL <- as.numeric(as.character(P12$MCL))   #Converting MCL from factor into numerical
 P12$BCL <- as.numeric(as.character(P12$BCL))   #Converting BCL from factor into numerical
 P12$IgG <- as.numeric(as.character(P12$IgG))   #Converting IgG from factor into numerical
@@ -37,7 +40,8 @@ P21_Pre$Stage <- "Red"
 P21_Post <- P21_Post [-1,c(7,14,15)]          
 colnames (P21_Post) <- c("MCL","BCL","IgG")   
 P21_Post$Stage <- "Blue"                      
-P21 <- rbind (P21_Pre, P21_Post)              
+P21 <- rbind (P21_Pre, P21_Post) 
+P21$Patient <- "P21"
 P21$MCL <- as.numeric(as.character(P21$MCL))  
 P21$BCL <- as.numeric(as.character(P21$BCL))  
 P21$IgG <- as.numeric(as.character(P21$IgG))  
@@ -60,7 +64,8 @@ P29_Pre$Stage <- "Red"
 P29_Post <- P29_Post [-1,c(7,14,15)]          
 colnames (P29_Post) <- c("MCL","BCL","IgG")   
 P29_Post$Stage <- "Blue"                      
-P29 <- rbind (P29_Pre, P29_Post)              
+P29 <- rbind (P29_Pre, P29_Post)
+P29$Patient <- "P29"
 P29$MCL <- as.numeric(as.character(P29$MCL))  
 P29$BCL <- as.numeric(as.character(P29$BCL))  
 P29$IgG <- as.numeric(as.character(P29$IgG))  
@@ -77,13 +82,14 @@ P29$IgG_r <- ifelse(P29$IgG_p <= 0.33, 'Low',
          ifelse(P29$IgG_p <= 0.66, 'Medium', 
          'High'))
 
-P31_Pre <- P31_Pre [-1,c(7,14,15)]            #Similar data manipulation for P31
+P31_Pre <- P31_Pre [-1,c(7,14,15)]              #Similar data manipulation for P31
 colnames (P31_Pre) <- c("MCL","BCL","IgG")    
 P31_Pre$Stage <- "Red"                        
 P31_Post <- P31_Post [-1,c(7,14,15)]          
 colnames (P31_Post) <- c("MCL","BCL","IgG")   
 P31_Post$Stage <- "Blue"                      
-P31 <- rbind (P31_Pre, P31_Post)              
+P31 <- rbind (P31_Pre, P31_Post)   
+P31$Patient <- "P31"
 P31$MCL <- as.numeric(as.character(P31$MCL))  
 P31$BCL <- as.numeric(as.character(P31$BCL))  
 P31$IgG <- as.numeric(as.character(P31$IgG))  
@@ -100,13 +106,14 @@ P31$IgG_r <- ifelse(P31$IgG_p <= 0.33, 'Low',
          ifelse(P31$IgG_p <= 0.66, 'Medium', 
          'High'))
 
-P71_Pre <- P71_Pre [-1,c(7,14,15)]            #Similar data manipulation for P71
+P71_Pre <- P71_Pre [-1,c(7,14,15)]              #Similar data manipulation for P71
 colnames (P71_Pre) <- c("MCL","BCL","IgG")    
 P71_Pre$Stage <- "Red"                        
 P71_Post <- P71_Post [-1,c(7,14,15)]          
 colnames (P71_Post) <- c("MCL","BCL","IgG")   
 P71_Post$Stage <- "Blue"                      
-P71 <- rbind (P71_Pre, P71_Post)              
+P71 <- rbind (P71_Pre, P71_Post)
+P71$Patient <- "P71"
 P71$MCL <- as.numeric(as.character(P71$MCL))  
 P71$BCL <- as.numeric(as.character(P71$BCL))  
 P71$IgG <- as.numeric(as.character(P71$IgG))  
@@ -281,4 +288,17 @@ with(All,
                  ))
 
 
+
+## 3 COLUMN CHART (CATEGORICAL DATA)
+
+ggplot(data, aes(fill=condition, y=value, x=specie)) + 
+    geom_bar(position="fill", stat="identity")
+ 
+# create a dataset
+specie <- c(rep("sorgho" , 3) , rep("poacee" , 3) , rep("banana" , 3) , rep("triticum" , 3) )
+condition <- rep(c("normal" , "stress" , "Nitrogen") , 4)
+value <- abs(rnorm(12 , 0 , 15))
+data <- data.frame(specie,condition,value)
+ 
+# Stacked + percent
 
