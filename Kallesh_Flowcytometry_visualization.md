@@ -1,47 +1,774 @@
 # Kallesh_Flowcytometry
 
-## PACKAGES (INSTALLATION AND LOADING)
-install.packages ("scatterplot3d")
-library ("scatterplot3d")
-install.packages ("tidyverse")
-library("tidyverse")
-install.packages("Rmisc")
-library("Rmisc")
+## 3D BUBBLE PLOTS (CATEGORICAL DATA)
 
-## DATA MANIPULATION
 ### Import and view data through the environment window in RStudio
 ### Re-arrange, rename, & normalize (percentile transformation) patient data
 
-P12_Pre <- P12_Pre [-1,c(7,14,15)]             #delete 1st row #select 7,14,15 columns
-colnames (P12_Pre) <- c("MCL","BCL","IgG")     #rename column names
-P12_Pre$Stage <- "Red"                         #new column with indicator color (pre/post)
+library("dplyr")
+P12_Pre <- P12_Pre [-1,c(7,14,15)]                         #delete 1st row #select 7,14,15 columns
+colnames (P12_Pre) <- c("MCL","BCL","IgG")                 #rename column names
+P12_Pre$Stage <- "Pre"                                     #creating stage identifier variable (pre/post)
+P12_Pre$MCL <- as.numeric(as.character(P12_Pre$MCL))       #Converting MCL from factor into numerical
+P12_Pre$BCL <- as.numeric(as.character(P12_Pre$BCL))       #Converting BCL from factor into numerical
+P12_Pre$IgG <- as.numeric(as.character(P12_Pre$IgG))       #Converting IgG from factor into numerical
+P12_Pre$MCL_p <- ecdf(P12_Pre$MCL)(P12_Pre$MCL)            #Creating a percentile variable for MCL
+P12_Pre$BCL_p <- ecdf(P12_Pre$BCL)(P12_Pre$BCL)            #Creating a percentile variable for BCL
+P12_Pre$IgG_p <- ecdf(P12_Pre$IgG)(P12_Pre$IgG)            #Creating a percentile variable for IgG
+P12_Pre$MCL_r <- ifelse(P12_Pre$MCL_p <= 0.33, '1',      
+         ifelse(P12_Pre$MCL_p <= 0.66, '2', 
+         '3'))
+P12_Pre$BCL_r <- ifelse(P12_Pre$BCL_p <= 0.33, '1',   
+         ifelse(P12_Pre$BCL_p <= 0.66, '2', 
+         '3'))
+P12_Pre$IgG_r <- ifelse(P12_Pre$IgG_p <= 0.33, '1',  
+         ifelse(P12_Pre$IgG_p <= 0.66, '2', 
+         '3'))
+P12_Pre_levels <- P12_Pre [,c(8:10)]
+P12_Pre_cat <- P12_Pre_levels %>% count (MCL_r, BCL_r, IgG_r)
+P12_Pre_cat$n <- ecdf(P12_Pre_cat$n)(P12_Pre_cat$n)
+
+P12_Post <- P12_Post [-1,c(7,14,15)]                      #Performing the same tasks for post-treatment data    
+colnames (P12_Post) <- c("MCL","BCL","IgG")            
+P12_Post$Stage <- "Post"                                    
+P12_Post$MCL <- as.numeric(as.character(P12_Post$MCL))           
+P12_Post$BCL <- as.numeric(as.character(P12_Post$BCL))           
+P12_Post$IgG <- as.numeric(as.character(P12_Post$IgG))          
+P12_Post$MCL_p <- ecdf(P12_Post$MCL)(P12_Post$MCL)          
+P12_Post$BCL_p <- ecdf(P12_Post$BCL)(P12_Post$BCL)            
+P12_Post$IgG_p <- ecdf(P12_Post$IgG)(P12_Post$IgG)            
+P12_Post$MCL_r <- ifelse(P12_Post$MCL_p <= 0.33, '1',      
+         ifelse(P12_Post$MCL_p <= 0.66, '2', 
+         '3'))
+P12_Post$BCL_r <- ifelse(P12_Post$BCL_p <= 0.33, '1',   
+         ifelse(P12_Post$BCL_p <= 0.66, '2', 
+         '3'))
+P12_Post$IgG_r <- ifelse(P12_Post$IgG_p <= 0.33, '1',  
+         ifelse(P12_Post$IgG_p <= 0.66, '2', 
+         '3'))
+P12_Post_levels <- P12_Post [,c(8:10)]
+P12_Post_cat <- P12_Post_levels %>% count (MCL_r, BCL_r, IgG_r)
+P12_Post_cat$n <- ecdf(P12_Post_cat$n)(P12_Post_cat$n)
+
+P12_Difference <- full_join(P12_Pre_cat, P12_Post_cat,                       #Creating a post-pre treatment data
+                   by = c("MCL_r", "BCL_r", "IgG_r")) %>%
+                   mutate_if(is.numeric,coalesce,0)
+P12_Difference$n <- P12_Difference$n.y - P12_Difference$n.x
+P12_Difference$Diff <- ifelse(P12_Difference$n == 0, "Null", 
+                    ifelse (P12_Difference$n > 0, "Increasing", 
+                    "Decreasing"))
+P12_Difference$n <- abs (P12_Difference$n)
+
+### Constructing 3D bubble plots 
+
+library("plotly")
+p12_pre_plot <- plot_ly(P12_Pre_cat, x = ~MCL_r, y = ~BCL_r, z = ~IgG_r, size = ~n, 
+                 type = "scatter3d", mode = "markers",
+                 marker = list(symbol = 'circle', sizemode ='diameter')) %>%
+                 layout (title = 'Anti-apoptopic protiens levels for p12, Pre-treatment',
+                            scene = list(xaxis = list(title = 'McL',
+                                  range = c(0, 3),
+                                  zerolinewidth = 1,
+                                  ticklen = 5,
+                                  gridwidth = 2),
+                           yaxis = list(title = 'BcL-2',
+                                  range = c(0, 3),
+                                  zerolinewidth = 1,
+                                  ticklen = 5,
+                                  gridwith = 2),
+                           zaxis = list(title = 'BcL_xL',
+                                        range = c(0, 3),
+                                        zerolinewidth = 1,
+                                        ticklen = 5,
+                                        gridwith = 2)))
+
+p12_pre_plot
+
+
+p12_post_plot <- plot_ly(P12_Post_cat, x = ~MCL_r, y = ~BCL_r, z = ~IgG_r, size = ~n,
+                 type = "scatter3d", mode = "markers",
+                 marker = list(symbol = 'circle', sizemode ='diameter')) %>%
+                 layout (title = 'Anti-apoptopic protiens levels for p12, Post-treatment',
+                            scene = list(xaxis = list(title = 'McL',
+                                  range = c(0, 3),
+                                  zerolinewidth = 1,
+                                  ticklen = 5,
+                                  gridwidth = 2),
+                           yaxis = list(title = 'BcL-2',
+                                  range = c(0, 3),
+                                  zerolinewidth = 1,
+                                  ticklen = 5,
+                                  gridwith = 2),
+                           zaxis = list(title = 'BcL_xL',
+                                        range = c(0, 3),
+                                        zerolinewidth = 1,
+                                        ticklen = 5,
+                                        gridwith = 2)))
+
+p12_post_plot
+
+
+p12_diff_plot <- plot_ly(P12_Difference, x = ~MCL_r, y = ~BCL_r, z = ~IgG_r, color = ~Diff, size = ~n, 
+                        colors = c('#FF7070', '#4AC6B7', '#1972A4'),
+                 type = "scatter3d", mode = "markers",
+                 marker = list(symbol = 'circle', sizemode ='diameter')) %>%
+                 layout (title = 'Anti-apoptopic protiens levels for p12, (Post-Pre) treatment',
+                            scene = list(xaxis = list(title = 'McL',
+                                  range = c(0, 3),
+                                  zerolinewidth = 1,
+                                  ticklen = 5,
+                                  gridwidth = 2),
+                           yaxis = list(title = 'BcL-2',
+                                  range = c(0, 3),
+                                  zerolinewidth = 1,
+                                  ticklen = 5,
+                                  gridwith = 2),
+                           zaxis = list(title = 'BcL-xL',
+                                        range = c(0, 3),
+                                        zerolinewidth = 1,
+                                        ticklen = 5,
+                                        gridwith = 2)))
+
+p12_diff_plot
+
+
+### Processing for Patient 21 in a similar fashion 
+
+library("dplyr")
+P21_Pre <- P21_Pre [-1,c(7,14,15)]                         #delete 1st row #select 7,14,15 columns
+colnames (P21_Pre) <- c("MCL","BCL","IgG")                 #rename column names
+P21_Pre$Stage <- "Pre"                                     #creating stage identifier variable (pre/post)
+P21_Pre$MCL <- as.numeric(as.character(P21_Pre$MCL))       #Converting MCL from factor into numerical
+P21_Pre$BCL <- as.numeric(as.character(P21_Pre$BCL))       #Converting BCL from factor into numerical
+P21_Pre$IgG <- as.numeric(as.character(P21_Pre$IgG))       #Converting IgG from factor into numerical
+P21_Pre$MCL_p <- ecdf(P21_Pre$MCL)(P21_Pre$MCL)            #Creating a percentile variable for MCL
+P21_Pre$BCL_p <- ecdf(P21_Pre$BCL)(P21_Pre$BCL)            #Creating a percentile variable for BCL
+P21_Pre$IgG_p <- ecdf(P21_Pre$IgG)(P21_Pre$IgG)            #Creating a percentile variable for IgG
+P21_Pre$MCL_r <- ifelse(P21_Pre$MCL_p <= 0.33, '1',      
+         ifelse(P21_Pre$MCL_p <= 0.66, '2', 
+         '3'))
+P21_Pre$BCL_r <- ifelse(P21_Pre$BCL_p <= 0.33, '1',   
+         ifelse(P21_Pre$BCL_p <= 0.66, '2', 
+         '3'))
+P21_Pre$IgG_r <- ifelse(P21_Pre$IgG_p <= 0.33, '1',  
+         ifelse(P21_Pre$IgG_p <= 0.66, '2', 
+         '3'))
+P21_Pre_levels <- P21_Pre [,c(8:10)]
+P21_Pre_cat <- P21_Pre_levels %>% count (MCL_r, BCL_r, IgG_r)
+P21_Pre_cat$n <- ecdf(P21_Pre_cat$n)(P21_Pre_cat$n)
+
+P21_Post <- P21_Post [-1,c(7,14,15)]                      #Performing the same tasks for post-treatment data    
+colnames (P21_Post) <- c("MCL","BCL","IgG")            
+P21_Post$Stage <- "Post"                                    
+P21_Post$MCL <- as.numeric(as.character(P21_Post$MCL))           
+P21_Post$BCL <- as.numeric(as.character(P21_Post$BCL))           
+P21_Post$IgG <- as.numeric(as.character(P21_Post$IgG))          
+P21_Post$MCL_p <- ecdf(P21_Post$MCL)(P21_Post$MCL)          
+P21_Post$BCL_p <- ecdf(P21_Post$BCL)(P21_Post$BCL)            
+P21_Post$IgG_p <- ecdf(P21_Post$IgG)(P21_Post$IgG)            
+P21_Post$MCL_r <- ifelse(P21_Post$MCL_p <= 0.33, '1',      
+         ifelse(P21_Post$MCL_p <= 0.66, '2', 
+         '3'))
+P21_Post$BCL_r <- ifelse(P21_Post$BCL_p <= 0.33, '1',   
+         ifelse(P21_Post$BCL_p <= 0.66, '2', 
+         '3'))
+P21_Post$IgG_r <- ifelse(P21_Post$IgG_p <= 0.33, '1',  
+         ifelse(P21_Post$IgG_p <= 0.66, '2', 
+         '3'))
+P21_Post_levels <- P21_Post [,c(8:10)]
+P21_Post_cat <- P21_Post_levels %>% count (MCL_r, BCL_r, IgG_r)
+P21_Post_cat$n <- ecdf(P21_Post_cat$n)(P21_Post_cat$n)
+
+P21_Difference <- full_join(P21_Pre_cat, P21_Post_cat,                #Creating a post-pre treatment data
+                   by = c("MCL_r", "BCL_r", "IgG_r")) %>%
+                   mutate_if(is.numeric,coalesce,0)
+P21_Difference$n <- P21_Difference$n.y - P21_Difference$n.x
+P21_Difference$Diff <- ifelse(P21_Difference$n == 0, "Null", 
+                    ifelse (P21_Difference$n > 0, "Increasing", 
+                    "Decreasing"))
+P21_Difference$n <- abs (P21_Difference$n)
+
+
+library("plotly")
+P21_pre_plot <- plot_ly(P21_Pre_cat, x = ~MCL_r, y = ~BCL_r, z = ~IgG_r, size = ~n, 
+                 type = "scatter3d", mode = "markers",
+                 marker = list(symbol = 'circle', sizemode ='diameter')) %>%
+                 layout (title = 'Anti-apoptopic protiens levels for P21, Pre-treatment',
+                            scene = list(xaxis = list(title = 'McL',
+                                  range = c(0, 3),
+                                  zerolinewidth = 1,
+                                  ticklen = 5,
+                                  gridwidth = 2),
+                           yaxis = list(title = 'BcL-2',
+                                  range = c(0, 3),
+                                  zerolinewidth = 1,
+                                  ticklen = 5,
+                                  gridwith = 2),
+                           zaxis = list(title = 'BcL_xL',
+                                        range = c(0, 3),
+                                        zerolinewidth = 1,
+                                        ticklen = 5,
+                                        gridwith = 2)))
+
+P21_pre_plot
+
+
+P21_post_plot <- plot_ly(P21_Post_cat, x = ~MCL_r, y = ~BCL_r, z = ~IgG_r, size = ~n,
+                 type = "scatter3d", mode = "markers",
+                 marker = list(symbol = 'circle', sizemode ='diameter')) %>%
+                 layout (title = 'Anti-apoptopic protiens levels for P21, Post-treatment',
+                            scene = list(xaxis = list(title = 'McL',
+                                  range = c(0, 3),
+                                  zerolinewidth = 1,
+                                  ticklen = 5,
+                                  gridwidth = 2),
+                           yaxis = list(title = 'BcL-2',
+                                  range = c(0, 3),
+                                  zerolinewidth = 1,
+                                  ticklen = 5,
+                                  gridwith = 2),
+                           zaxis = list(title = 'BcL_xL',
+                                        range = c(0, 3),
+                                        zerolinewidth = 1,
+                                        ticklen = 5,
+                                        gridwith = 2)))
+
+P21_post_plot
+
+
+P21_diff_plot <- plot_ly(P21_Difference, x = ~MCL_r, y = ~BCL_r, z = ~IgG_r, color = ~Diff, size = ~n, 
+                        colors = c('#FF7070', '#4AC6B7', '#1972A4'),
+                 type = "scatter3d", mode = "markers",
+                 marker = list(symbol = 'circle', sizemode ='diameter')) %>%
+                 layout (title = 'Anti-apoptopic protiens levels for P21, (Post-Pre) treatment',
+                            scene = list(xaxis = list(title = 'McL',
+                                  range = c(0, 3),
+                                  zerolinewidth = 1,
+                                  ticklen = 5,
+                                  gridwidth = 2),
+                           yaxis = list(title = 'BcL-2',
+                                  range = c(0, 3),
+                                  zerolinewidth = 1,
+                                  ticklen = 5,
+                                  gridwith = 2),
+                           zaxis = list(title = 'BcL-xL',
+                                        range = c(0, 3),
+                                        zerolinewidth = 1,
+                                        ticklen = 5,
+                                        gridwith = 2)))
+
+P21_diff_plot
+
+
+### Processing for Patient 29 in a similar fashion 
+
+library("dplyr")
+P29_Pre <- P29_Pre [-1,c(7,14,15)]                         #delete 1st row #select 7,14,15 columns
+colnames (P29_Pre) <- c("MCL","BCL","IgG")                 #rename column names
+P29_Pre$Stage <- "Pre"                                     #creating stage identifier variable (pre/post)
+P29_Pre$MCL <- as.numeric(as.character(P29_Pre$MCL))       #Converting MCL from factor into numerical
+P29_Pre$BCL <- as.numeric(as.character(P29_Pre$BCL))       #Converting BCL from factor into numerical
+P29_Pre$IgG <- as.numeric(as.character(P29_Pre$IgG))       #Converting IgG from factor into numerical
+P29_Pre$MCL_p <- ecdf(P29_Pre$MCL)(P29_Pre$MCL)            #Creating a percentile variable for MCL
+P29_Pre$BCL_p <- ecdf(P29_Pre$BCL)(P29_Pre$BCL)            #Creating a percentile variable for BCL
+P29_Pre$IgG_p <- ecdf(P29_Pre$IgG)(P29_Pre$IgG)            #Creating a percentile variable for IgG
+P29_Pre$MCL_r <- ifelse(P29_Pre$MCL_p <= 0.33, '1',      
+         ifelse(P29_Pre$MCL_p <= 0.66, '2', 
+         '3'))
+P29_Pre$BCL_r <- ifelse(P29_Pre$BCL_p <= 0.33, '1',   
+         ifelse(P29_Pre$BCL_p <= 0.66, '2', 
+         '3'))
+P29_Pre$IgG_r <- ifelse(P29_Pre$IgG_p <= 0.33, '1',  
+         ifelse(P29_Pre$IgG_p <= 0.66, '2', 
+         '3'))
+P29_Pre_levels <- P29_Pre [,c(8:10)]
+P29_Pre_cat <- P29_Pre_levels %>% count (MCL_r, BCL_r, IgG_r)
+P29_Pre_cat$n <- ecdf(P29_Pre_cat$n)(P29_Pre_cat$n)
+
+P29_Post <- P29_Post [-1,c(7,14,15)]                      #Performing the same tasks for post-treatment data    
+colnames (P29_Post) <- c("MCL","BCL","IgG")            
+P29_Post$Stage <- "Post"                                    
+P29_Post$MCL <- as.numeric(as.character(P29_Post$MCL))           
+P29_Post$BCL <- as.numeric(as.character(P29_Post$BCL))           
+P29_Post$IgG <- as.numeric(as.character(P29_Post$IgG))          
+P29_Post$MCL_p <- ecdf(P29_Post$MCL)(P29_Post$MCL)          
+P29_Post$BCL_p <- ecdf(P29_Post$BCL)(P29_Post$BCL)            
+P29_Post$IgG_p <- ecdf(P29_Post$IgG)(P29_Post$IgG)            
+P29_Post$MCL_r <- ifelse(P29_Post$MCL_p <= 0.33, '1',      
+         ifelse(P29_Post$MCL_p <= 0.66, '2', 
+         '3'))
+P29_Post$BCL_r <- ifelse(P29_Post$BCL_p <= 0.33, '1',   
+         ifelse(P29_Post$BCL_p <= 0.66, '2', 
+         '3'))
+P29_Post$IgG_r <- ifelse(P29_Post$IgG_p <= 0.33, '1',  
+         ifelse(P29_Post$IgG_p <= 0.66, '2', 
+         '3'))
+P29_Post_levels <- P29_Post [,c(8:10)]
+P29_Post_cat <- P29_Post_levels %>% count (MCL_r, BCL_r, IgG_r)
+P29_Post_cat$n <- ecdf(P29_Post_cat$n)(P29_Post_cat$n)
+
+P29_Difference <- full_join(P29_Pre_cat, P29_Post_cat, by = c("MCL_r", "BCL_r", "IgG_r")) %>%
+                            mutate_if(is.numeric,coalesce,0)
+
+P29_Difference <- full_join(P29_Pre_cat, P29_Post_cat,                       #Creating a post-pre treatment data
+                   by = c("MCL_r", "BCL_r", "IgG_r")) %>%
+                   mutate_if(is.numeric,coalesce,0)
+P29_Difference$n <- P29_Difference$n.y - P29_Difference$n.x
+P29_Difference$Diff <- ifelse(P29_Difference$n == 0, "Null", 
+                    ifelse (P29_Difference$n > 0, "Increasing", 
+                    "Decreasing"))
+P29_Difference$n <- abs (P29_Difference$n)
+
+library("plotly")
+P29_pre_plot <- plot_ly(P29_Pre_cat, x = ~MCL_r, y = ~BCL_r, z = ~IgG_r, size = ~n, 
+                 type = "scatter3d", mode = "markers",
+                 marker = list(symbol = 'circle', sizemode ='diameter')) %>%
+                 layout (title = 'Anti-apoptopic protiens levels for P29, Pre-treatment',
+                            scene = list(xaxis = list(title = 'McL',
+                                  range = c(0, 3),
+                                  zerolinewidth = 1,
+                                  ticklen = 5,
+                                  gridwidth = 2),
+                           yaxis = list(title = 'BcL-2',
+                                  range = c(0, 3),
+                                  zerolinewidth = 1,
+                                  ticklen = 5,
+                                  gridwith = 2),
+                           zaxis = list(title = 'BcL_xL',
+                                        range = c(0, 3),
+                                        zerolinewidth = 1,
+                                        ticklen = 5,
+                                        gridwith = 2)))
+
+P29_pre_plot
+
+
+P29_post_plot <- plot_ly(P29_Post_cat, x = ~MCL_r, y = ~BCL_r, z = ~IgG_r, size = ~n,
+                 type = "scatter3d", mode = "markers",
+                 marker = list(symbol = 'circle', sizemode ='diameter')) %>%
+                 layout (title = 'Anti-apoptopic protiens levels for P29, Post-treatment',
+                            scene = list(xaxis = list(title = 'McL',
+                                  range = c(0, 3),
+                                  zerolinewidth = 1,
+                                  ticklen = 5,
+                                  gridwidth = 2),
+                           yaxis = list(title = 'BcL-2',
+                                  range = c(0, 3),
+                                  zerolinewidth = 1,
+                                  ticklen = 5,
+                                  gridwith = 2),
+                           zaxis = list(title = 'BcL_xL',
+                                        range = c(0, 3),
+                                        zerolinewidth = 1,
+                                        ticklen = 5,
+                                        gridwith = 2)))
+
+P29_post_plot
+
+
+P29_diff_plot <- plot_ly(P29_Difference, x = ~MCL_r, y = ~BCL_r, z = ~IgG_r, color = ~Diff, size = ~n, 
+                        colors = c('#FF7070', '#4AC6B7', '#1972A4'),
+                 type = "scatter3d", mode = "markers",
+                 marker = list(symbol = 'circle', sizemode ='diameter')) %>%
+                 layout (title = 'Anti-apoptopic protiens levels for P29, (Post-Pre) treatment',
+                            scene = list(xaxis = list(title = 'McL',
+                                  range = c(0, 3),
+                                  zerolinewidth = 1,
+                                  ticklen = 5,
+                                  gridwidth = 2),
+                           yaxis = list(title = 'BcL-2',
+                                  range = c(0, 3),
+                                  zerolinewidth = 1,
+                                  ticklen = 5,
+                                  gridwith = 2),
+                           zaxis = list(title = 'BcL-xL',
+                                        range = c(0, 3),
+                                        zerolinewidth = 1,
+                                        ticklen = 5,
+                                        gridwith = 2)))
+
+P29_diff_plot
+
+
+### Processing for Patient 31 in a similar fashion 
+
+library("dplyr")
+P31_Pre <- P31_Pre [-1,c(7,14,15)]                         #delete 1st row #select 7,14,15 columns
+colnames (P31_Pre) <- c("MCL","BCL","IgG")                 #rename column names
+P31_Pre$Stage <- "Pre"                                     #creating stage identifier variable (pre/post)
+P31_Pre$MCL <- as.numeric(as.character(P31_Pre$MCL))       #Converting MCL from factor into numerical
+P31_Pre$BCL <- as.numeric(as.character(P31_Pre$BCL))       #Converting BCL from factor into numerical
+P31_Pre$IgG <- as.numeric(as.character(P31_Pre$IgG))       #Converting IgG from factor into numerical
+P31_Pre$MCL_p <- ecdf(P31_Pre$MCL)(P31_Pre$MCL)            #Creating a percentile variable for MCL
+P31_Pre$BCL_p <- ecdf(P31_Pre$BCL)(P31_Pre$BCL)            #Creating a percentile variable for BCL
+P31_Pre$IgG_p <- ecdf(P31_Pre$IgG)(P31_Pre$IgG)            #Creating a percentile variable for IgG
+P31_Pre$MCL_r <- ifelse(P31_Pre$MCL_p <= 0.33, '1',      
+         ifelse(P31_Pre$MCL_p <= 0.66, '2', 
+         '3'))
+P31_Pre$BCL_r <- ifelse(P31_Pre$BCL_p <= 0.33, '1',   
+         ifelse(P31_Pre$BCL_p <= 0.66, '2', 
+         '3'))
+P31_Pre$IgG_r <- ifelse(P31_Pre$IgG_p <= 0.33, '1',  
+         ifelse(P31_Pre$IgG_p <= 0.66, '2', 
+         '3'))
+P31_Pre_levels <- P31_Pre [,c(8:10)]
+P31_Pre_cat <- P31_Pre_levels %>% count (MCL_r, BCL_r, IgG_r)
+P31_Pre_cat$n <- ecdf(P31_Pre_cat$n)(P31_Pre_cat$n)
+
+P31_Post <- P31_Post [-1,c(7,14,15)]                      #Performing the same tasks for post-treatment data    
+colnames (P31_Post) <- c("MCL","BCL","IgG")            
+P31_Post$Stage <- "Post"                                    
+P31_Post$MCL <- as.numeric(as.character(P31_Post$MCL))           
+P31_Post$BCL <- as.numeric(as.character(P31_Post$BCL))           
+P31_Post$IgG <- as.numeric(as.character(P31_Post$IgG))          
+P31_Post$MCL_p <- ecdf(P31_Post$MCL)(P31_Post$MCL)          
+P31_Post$BCL_p <- ecdf(P31_Post$BCL)(P31_Post$BCL)            
+P31_Post$IgG_p <- ecdf(P31_Post$IgG)(P31_Post$IgG)            
+P31_Post$MCL_r <- ifelse(P31_Post$MCL_p <= 0.33, '1',      
+         ifelse(P31_Post$MCL_p <= 0.66, '2', 
+         '3'))
+P31_Post$BCL_r <- ifelse(P31_Post$BCL_p <= 0.33, '1',   
+         ifelse(P31_Post$BCL_p <= 0.66, '2', 
+         '3'))
+P31_Post$IgG_r <- ifelse(P31_Post$IgG_p <= 0.33, '1',  
+         ifelse(P31_Post$IgG_p <= 0.66, '2', 
+         '3'))
+P31_Post_levels <- P31_Post [,c(8:10)]
+P31_Post_cat <- P31_Post_levels %>% count (MCL_r, BCL_r, IgG_r)
+P31_Post_cat$n <- ecdf(P31_Post_cat$n)(P31_Post_cat$n)
+
+P31_Difference <- full_join(P31_Pre_cat, P31_Post_cat, by = c("MCL_r", "BCL_r", "IgG_r")) %>%
+                            mutate_if(is.numeric,coalesce,0)
+
+P31_Difference <- full_join(P31_Pre_cat, P31_Post_cat,                       #Creating a post-pre treatment data
+                   by = c("MCL_r", "BCL_r", "IgG_r")) %>%
+                   mutate_if(is.numeric,coalesce,0)
+P31_Difference$n <- P31_Difference$n.y - P31_Difference$n.x
+P31_Difference$Diff <- ifelse(P31_Difference$n == 0, "Null", 
+                    ifelse (P31_Difference$n > 0, "Increasing", 
+                    "Decreasing"))
+P31_Difference$n <- abs (P31_Difference$n)
+
+library("plotly")
+P31_pre_plot <- plot_ly(P31_Pre_cat, x = ~MCL_r, y = ~BCL_r, z = ~IgG_r, size = ~n, 
+                 type = "scatter3d", mode = "markers",
+                 marker = list(symbol = 'circle', sizemode ='diameter')) %>%
+                 layout (title = 'Anti-apoptopic protiens levels for P31, Pre-treatment',
+                            scene = list(xaxis = list(title = 'McL',
+                                  range = c(0, 3),
+                                  zerolinewidth = 1,
+                                  ticklen = 5,
+                                  gridwidth = 2),
+                           yaxis = list(title = 'BcL-2',
+                                  range = c(0, 3),
+                                  zerolinewidth = 1,
+                                  ticklen = 5,
+                                  gridwith = 2),
+                           zaxis = list(title = 'BcL_xL',
+                                        range = c(0, 3),
+                                        zerolinewidth = 1,
+                                        ticklen = 5,
+                                        gridwith = 2)))
+
+P31_pre_plot
+
+
+P31_post_plot <- plot_ly(P31_Post_cat, x = ~MCL_r, y = ~BCL_r, z = ~IgG_r, size = ~n,
+                 type = "scatter3d", mode = "markers",
+                 marker = list(symbol = 'circle', sizemode ='diameter')) %>%
+                 layout (title = 'Anti-apoptopic protiens levels for P31, Post-treatment',
+                            scene = list(xaxis = list(title = 'McL',
+                                  range = c(0, 3),
+                                  zerolinewidth = 1,
+                                  ticklen = 5,
+                                  gridwidth = 2),
+                           yaxis = list(title = 'BcL-2',
+                                  range = c(0, 3),
+                                  zerolinewidth = 1,
+                                  ticklen = 5,
+                                  gridwith = 2),
+                           zaxis = list(title = 'BcL_xL',
+                                        range = c(0, 3),
+                                        zerolinewidth = 1,
+                                        ticklen = 5,
+                                        gridwith = 2)))
+
+P31_post_plot
+
+
+P31_diff_plot <- plot_ly(P31_Difference, x = ~MCL_r, y = ~BCL_r, z = ~IgG_r, color = ~Diff, size = ~n, 
+                        colors = c('#FF7070', '#4AC6B7', '#1972A4'),
+                 type = "scatter3d", mode = "markers",
+                 marker = list(symbol = 'circle', sizemode ='diameter')) %>%
+                 layout (title = 'Anti-apoptopic protiens levels for P31, (Post-Pre) treatment',
+                            scene = list(xaxis = list(title = 'McL',
+                                  range = c(0, 3),
+                                  zerolinewidth = 1,
+                                  ticklen = 5,
+                                  gridwidth = 2),
+                           yaxis = list(title = 'BcL-2',
+                                  range = c(0, 3),
+                                  zerolinewidth = 1,
+                                  ticklen = 5,
+                                  gridwith = 2),
+                           zaxis = list(title = 'BcL-xL',
+                                        range = c(0, 3),
+                                        zerolinewidth = 1,
+                                        ticklen = 5,
+                                        gridwith = 2)))
+
+P31_diff_plot
+
+
+### Processing for Patient 71 in a similar fashion 
+
+library("dplyr")
+P71_Pre <- P71_Pre [-1,c(7,14,15)]                         #delete 1st row #select 7,14,15 columns
+colnames (P71_Pre) <- c("MCL","BCL","IgG")                 #rename column names
+P71_Pre$Stage <- "Pre"                                     #creating stage identifier variable (pre/post)
+P71_Pre$MCL <- as.numeric(as.character(P71_Pre$MCL))       #Converting MCL from factor into numerical
+P71_Pre$BCL <- as.numeric(as.character(P71_Pre$BCL))       #Converting BCL from factor into numerical
+P71_Pre$IgG <- as.numeric(as.character(P71_Pre$IgG))       #Converting IgG from factor into numerical
+P71_Pre$MCL_p <- ecdf(P71_Pre$MCL)(P71_Pre$MCL)            #Creating a percentile variable for MCL
+P71_Pre$BCL_p <- ecdf(P71_Pre$BCL)(P71_Pre$BCL)            #Creating a percentile variable for BCL
+P71_Pre$IgG_p <- ecdf(P71_Pre$IgG)(P71_Pre$IgG)            #Creating a percentile variable for IgG
+P71_Pre$MCL_r <- ifelse(P71_Pre$MCL_p <= 0.33, '1',      
+         ifelse(P71_Pre$MCL_p <= 0.66, '2', 
+         '3'))
+P71_Pre$BCL_r <- ifelse(P71_Pre$BCL_p <= 0.33, '1',   
+         ifelse(P71_Pre$BCL_p <= 0.66, '2', 
+         '3'))
+P71_Pre$IgG_r <- ifelse(P71_Pre$IgG_p <= 0.33, '1',  
+         ifelse(P71_Pre$IgG_p <= 0.66, '2', 
+         '3'))
+P71_Pre_levels <- P71_Pre [,c(8:10)]
+P71_Pre_cat <- P71_Pre_levels %>% count (MCL_r, BCL_r, IgG_r)
+P71_Pre_cat$n <- ecdf(P71_Pre_cat$n)(P71_Pre_cat$n)
+
+P71_Post <- P71_Post [-1,c(7,14,15)]                      #Performing the same tasks for post-treatment data    
+colnames (P71_Post) <- c("MCL","BCL","IgG")            
+P71_Post$Stage <- "Post"                                    
+P71_Post$MCL <- as.numeric(as.character(P71_Post$MCL))           
+P71_Post$BCL <- as.numeric(as.character(P71_Post$BCL))           
+P71_Post$IgG <- as.numeric(as.character(P71_Post$IgG))          
+P71_Post$MCL_p <- ecdf(P71_Post$MCL)(P71_Post$MCL)          
+P71_Post$BCL_p <- ecdf(P71_Post$BCL)(P71_Post$BCL)            
+P71_Post$IgG_p <- ecdf(P71_Post$IgG)(P71_Post$IgG)            
+P71_Post$MCL_r <- ifelse(P71_Post$MCL_p <= 0.33, '1',      
+         ifelse(P71_Post$MCL_p <= 0.66, '2', 
+         '3'))
+P71_Post$BCL_r <- ifelse(P71_Post$BCL_p <= 0.33, '1',   
+         ifelse(P71_Post$BCL_p <= 0.66, '2', 
+         '3'))
+P71_Post$IgG_r <- ifelse(P71_Post$IgG_p <= 0.33, '1',  
+         ifelse(P71_Post$IgG_p <= 0.66, '2', 
+         '3'))
+P71_Post_levels <- P71_Post [,c(8:10)]
+P71_Post_cat <- P71_Post_levels %>% count (MCL_r, BCL_r, IgG_r)
+P71_Post_cat$n <- ecdf(P71_Post_cat$n)(P71_Post_cat$n)
+
+P71_Difference <- full_join(P71_Pre_cat, P71_Post_cat, by = c("MCL_r", "BCL_r", "IgG_r")) %>%
+                            mutate_if(is.numeric,coalesce,0)
+
+P71_Difference <- full_join(P71_Pre_cat, P71_Post_cat,                       #Creating a post-pre treatment data
+                   by = c("MCL_r", "BCL_r", "IgG_r")) %>%
+                   mutate_if(is.numeric,coalesce,0)
+P71_Difference$n <- P71_Difference$n.y - P71_Difference$n.x
+P71_Difference$Diff <- ifelse(P71_Difference$n == 0, "Null", 
+                    ifelse (P71_Difference$n > 0, "Increasing", 
+                    "Decreasing"))
+P71_Difference$n <- abs (P71_Difference$n)
+
+library("plotly")
+P71_pre_plot <- plot_ly(P71_Pre_cat, x = ~MCL_r, y = ~BCL_r, z = ~IgG_r, size = ~n, 
+                 type = "scatter3d", mode = "markers",
+                 marker = list(symbol = 'circle', sizemode ='diameter')) %>%
+                 layout (title = 'Anti-apoptopic protiens levels for P71, Pre-treatment',
+                            scene = list(xaxis = list(title = 'McL',
+                                  range = c(0, 3),
+                                  zerolinewidth = 1,
+                                  ticklen = 5,
+                                  gridwidth = 2),
+                           yaxis = list(title = 'BcL-2',
+                                  range = c(0, 3),
+                                  zerolinewidth = 1,
+                                  ticklen = 5,
+                                  gridwith = 2),
+                           zaxis = list(title = 'BcL_xL',
+                                        range = c(0, 3),
+                                        zerolinewidth = 1,
+                                        ticklen = 5,
+                                        gridwith = 2)))
+
+P71_pre_plot
+
+
+P71_post_plot <- plot_ly(P71_Post_cat, x = ~MCL_r, y = ~BCL_r, z = ~IgG_r, size = ~n,
+                 type = "scatter3d", mode = "markers",
+                 marker = list(symbol = 'circle', sizemode ='diameter')) %>%
+                 layout (title = 'Anti-apoptopic protiens levels for P71, Post-treatment',
+                            scene = list(xaxis = list(title = 'McL',
+                                  range = c(0, 3),
+                                  zerolinewidth = 1,
+                                  ticklen = 5,
+                                  gridwidth = 2),
+                           yaxis = list(title = 'BcL-2',
+                                  range = c(0, 3),
+                                  zerolinewidth = 1,
+                                  ticklen = 5,
+                                  gridwith = 2),
+                           zaxis = list(title = 'BcL_xL',
+                                        range = c(0, 3),
+                                        zerolinewidth = 1,
+                                        ticklen = 5,
+                                        gridwith = 2)))
+
+P71_post_plot
+
+
+P71_diff_plot <- plot_ly(P71_Difference, x = ~MCL_r, y = ~BCL_r, z = ~IgG_r, color = ~Diff, size = ~n, 
+                        colors = c('#FF7070', '#4AC6B7', '#1972A4'),
+                 type = "scatter3d", mode = "markers",
+                 marker = list(symbol = 'circle', sizemode ='diameter')) %>%
+                 layout (title = 'Anti-apoptopic protiens levels for P71, (Post-Pre) treatment',
+                            scene = list(xaxis = list(title = 'McL',
+                                  range = c(0, 3),
+                                  zerolinewidth = 1,
+                                  ticklen = 5,
+                                  gridwidth = 2),
+                           yaxis = list(title = 'BcL-2',
+                                  range = c(0, 3),
+                                  zerolinewidth = 1,
+                                  ticklen = 5,
+                                  gridwith = 2),
+                           zaxis = list(title = 'BcL-xL',
+                                        range = c(0, 3),
+                                        zerolinewidth = 1,
+                                        ticklen = 5,
+                                        gridwith = 2)))
+
+P71_diff_plot
+
+### Processing for all the patients (combined) in a similar fashion
+
+P12_Diff <- P12_Difference [c(-6,-7)]
+P12_Diff <- P12_Diff %>% rename(n.x.12 = n.x, n.y.12 = n.y)
+P21_Diff <- P21_Difference [c(-6,-7)]
+P21_Diff <- P21_Diff %>% rename(n.x.21 = n.x, n.y.21 = n.y)      
+P29_Diff <- P29_Difference [c(-6,-7)]
+P29_Diff <- P29_Diff %>% rename(n.x.29 = n.x, n.y.29 = n.y)
+P31_Diff <- P31_Difference [c(-6,-7)]
+P31_Diff <- P31_Diff %>% rename(n.x.31 = n.x, n.y.31 = n.y)
+P71_Diff <- P71_Difference [c(-6,-7)]
+P71_Diff <- P71_Diff %>% rename(n.x.71 = n.x, n.y.71 = n.y)
+All_Diff <- cbind (P12_Diff, P21_Diff, P29_Diff, P31_Diff, P71_Diff)
+All_Diff <- All_Diff [-c(6:8, 11:13, 16:18, 21:23)]
+All_Diff$n.x <- rowMeans (All_Diff[c(4,6,8,10,12)])
+All_Diff$n.y <- rowMeans (All_Diff[c(5,7,9,11,13)])
+All_Diff$n <- All_Diff$n.y - All_Diff$n.x
+All_Diff$Diff <- ifelse(All_Diff$n == 0, "Null", 
+                    ifelse (All_Diff$n > 0, "Increasing", 
+                    "Decreasing"))
+All_Diff$n <- abs (All_Diff$n)
+
+
+library("plotly")
+All_pre_plot <- plot_ly(All_Diff, x = ~MCL_r, y = ~BCL_r, z = ~IgG_r, size = ~n.x, 
+                 type = "scatter3d", mode = "markers",
+                 marker = list(symbol = 'circle', sizemode ='diameter')) %>%
+                 layout (title = 'Anti-apoptopic protiens levels for All, Pre-treatment',
+                            scene = list(xaxis = list(title = 'McL',
+                                  range = c(0, 3),
+                                  zerolinewidth = 1,
+                                  ticklen = 5,
+                                  gridwidth = 2),
+                           yaxis = list(title = 'BcL-2',
+                                  range = c(0, 3),
+                                  zerolinewidth = 1,
+                                  ticklen = 5,
+                                  gridwith = 2),
+                           zaxis = list(title = 'BcL_xL',
+                                        range = c(0, 3),
+                                        zerolinewidth = 1,
+                                        ticklen = 5,
+                                        gridwith = 2)))
+
+All_pre_plot
+
+
+All_post_plot <- plot_ly(All_Diff, x = ~MCL_r, y = ~BCL_r, z = ~IgG_r, size = ~n.y,
+                 type = "scatter3d", mode = "markers",
+                 marker = list(symbol = 'circle', sizemode ='diameter')) %>%
+                 layout (title = 'Anti-apoptopic protiens levels for All, Post-treatment',
+                            scene = list(xaxis = list(title = 'McL',
+                                  range = c(0, 3),
+                                  zerolinewidth = 1,
+                                  ticklen = 5,
+                                  gridwidth = 2),
+                           yaxis = list(title = 'BcL-2',
+                                  range = c(0, 3),
+                                  zerolinewidth = 1,
+                                  ticklen = 5,
+                                  gridwith = 2),
+                           zaxis = list(title = 'BcL_xL',
+                                        range = c(0, 3),
+                                        zerolinewidth = 1,
+                                        ticklen = 5,
+                                        gridwith = 2)))
+
+All_post_plot
+
+
+All_diff_plot <- plot_ly(All_Diff, x = ~MCL_r, y = ~BCL_r, z = ~IgG_r, color = ~Diff, size = ~n, 
+                        colors = c('#FF7070', '#4AC6B7'),
+                 type = "scatter3d", mode = "markers",
+                 marker = list(symbol = 'circle', sizemode ='diameter')) %>%
+                 layout (title = 'Anti-apoptopic protiens levels for All, (Post-Pre) treatment',
+                            scene = list(xaxis = list(title = 'McL',
+                                  range = c(0, 3),
+                                  zerolinewidth = 1,
+                                  ticklen = 5,
+                                  gridwidth = 2),
+                           yaxis = list(title = 'BcL-2',
+                                  range = c(0, 3),
+                                  zerolinewidth = 1,
+                                  ticklen = 5,
+                                  gridwith = 2),
+                           zaxis = list(title = 'BcL-xL',
+                                        range = c(0, 3),
+                                        zerolinewidth = 1,
+                                        ticklen = 5,
+                                        gridwith = 2)))
+
+All_diff_plot
+
+
+
+### SUPPLEMENTAL PLOTS (SCATTER PLOTS AND BAR PLOTS)
+
+#### Delete all data from the environment 
+#### Import and view data through the environment window in RStudio
+#### Re-arrange, rename, & normalize (percentile transformation) patient data
+
 P12_Post <- P12_Post [-1,c(7,14,15)]           #delete 1st row #select 7,14,15 columns
 colnames (P12_Post) <- c("MCL","BCL","IgG")    #rename column names
-P12_Post$Stage <- "Blue"                       #new column with indicator color (pre/post)
+P12_Post$Stage <- "Post"                       #creating stage identifier variable (pre/post)
 P12 <- rbind (P12_Pre, P12_Post)               #binding (merging) the pre and post data
 P12$Patient <- "P12"                           #Creating Patient identifier variable
 P12$MCL <- as.numeric(as.character(P12$MCL))   #Converting MCL from factor into numerical
 P12$BCL <- as.numeric(as.character(P12$BCL))   #Converting BCL from factor into numerical
 P12$IgG <- as.numeric(as.character(P12$IgG))   #Converting IgG from factor into numerical
 P12$MCL_p <- ecdf(P12$MCL)(P12$MCL)            #Creating a percentile variable for MCL
-P12$BCL_p <- ecdf(P12$BCL)(P12$BCL)            #Creating a percentile variable for MCL
-P12$IgG_p <- ecdf(P12$IgG)(P12$IgG)            #Creating a percentile variable for MCL
-P12$MCL_r <- ifelse(P12$MCL_p <= 0.33, 'Low',  #Categorizing data
-         ifelse(P12$MCL_p <= 0.66, 'Medium', 
-         'High'))
-P12$BCL_r <- ifelse(P12$BCL_p <= 0.33, 'Low',   
-         ifelse(P12$BCL_p <= 0.66, 'Medium', 
-         'High'))
-P12$IgG_r <- ifelse(P12$IgG_p <= 0.33, 'Low',  
-         ifelse(P12$IgG_p <= 0.66, 'Medium', 
-         'High'))
+P12$BCL_p <- ecdf(P12$BCL)(P12$BCL)            #Creating a percentile variable for BCL
+P12$IgG_p <- ecdf(P12$IgG)(P12$IgG)            #Creating a percentile variable for IgG
+
 
 P21_Pre <- P21_Pre [-1,c(7,14,15)]            #Similar data manipulation for P21
 colnames (P21_Pre) <- c("MCL","BCL","IgG")    
-P21_Pre$Stage <- "Red"                        
+P21_Pre$Stage <- "Pre"                        
 P21_Post <- P21_Post [-1,c(7,14,15)]          
 colnames (P21_Post) <- c("MCL","BCL","IgG")   
-P21_Post$Stage <- "Blue"                      
+P21_Post$Stage <- "Post"                      
 P21 <- rbind (P21_Pre, P21_Post) 
 P21$Patient <- "P21"
 P21$MCL <- as.numeric(as.character(P21$MCL))  
@@ -62,10 +789,10 @@ P21$IgG_r <- ifelse(P21$IgG_p <= 0.33, 'Low',
 
 P29_Pre <- P29_Pre [-1,c(7,14,15)]            #Similar data manipulation for P29
 colnames (P29_Pre) <- c("MCL","BCL","IgG")    
-P29_Pre$Stage <- "Red"                        
+P29_Pre$Stage <- "Pre"                        
 P29_Post <- P29_Post [-1,c(7,14,15)]          
 colnames (P29_Post) <- c("MCL","BCL","IgG")   
-P29_Post$Stage <- "Blue"                      
+P29_Post$Stage <- "Post"                      
 P29 <- rbind (P29_Pre, P29_Post)
 P29$Patient <- "P29"
 P29$MCL <- as.numeric(as.character(P29$MCL))  
@@ -86,10 +813,10 @@ P29$IgG_r <- ifelse(P29$IgG_p <= 0.33, 'Low',
 
 P31_Pre <- P31_Pre [-1,c(7,14,15)]              #Similar data manipulation for P31
 colnames (P31_Pre) <- c("MCL","BCL","IgG")    
-P31_Pre$Stage <- "Red"                        
+P31_Pre$Stage <- "Pre"                        
 P31_Post <- P31_Post [-1,c(7,14,15)]          
 colnames (P31_Post) <- c("MCL","BCL","IgG")   
-P31_Post$Stage <- "Blue"                      
+P31_Post$Stage <- "Post"                      
 P31 <- rbind (P31_Pre, P31_Post)   
 P31$Patient <- "P31"
 P31$MCL <- as.numeric(as.character(P31$MCL))  
@@ -110,10 +837,10 @@ P31$IgG_r <- ifelse(P31$IgG_p <= 0.33, 'Low',
 
 P71_Pre <- P71_Pre [-1,c(7,14,15)]              #Similar data manipulation for P71
 colnames (P71_Pre) <- c("MCL","BCL","IgG")    
-P71_Pre$Stage <- "Red"                        
+P71_Pre$Stage <- "Pre"                        
 P71_Post <- P71_Post [-1,c(7,14,15)]          
 colnames (P71_Post) <- c("MCL","BCL","IgG")   
-P71_Post$Stage <- "Blue"                      
+P71_Post$Stage <- "Post"                      
 P71 <- rbind (P71_Pre, P71_Post)
 P71$Patient <- "P71"
 P71$MCL <- as.numeric(as.character(P71$MCL))  
@@ -134,10 +861,44 @@ P71$IgG_r <- ifelse(P71$IgG_p <= 0.33, 'Low',
 
 All <- rbind (P12,P21,P29,P31,P71)              #binding (merging) the multiple patient data
 
+#### Creating a data.frame
 
-## 3D SCATTERPLOTS (CONTINUOUS DATA)
+P12_protein=c(rep("MCL",6), rep("BCL",6), rep("IgG",6))
+P12_stage=c(rep("i.Pre",3), rep ("ii.During",3))
+P12_level=rep(c("a.high", "b.medium", "c.low"),2)
+P12_value=c(P12_MCL_Pre_H, P12_MCL_Pre_M, P12_MCL_Pre_L,
+            P12_MCL_Post_H, P12_MCL_Post_M, P12_MCL_Post_L,
+            P12_BCL_Pre_H, P12_BCL_Pre_M, P12_BCL_Pre_L,
+            P12_BCL_Post_H, P12_BCL_Post_M, P12_BCL_Post_L,
+            P12_IgG_Pre_H, P12_IgG_Pre_M, P12_IgG_Pre_L,
+            P12_IgG_Post_H, P12_IgG_Post_M, P12_IgG_Post_L)
+P12_cat=data.frame(P12_protein,P12_stage, P12_level, P12_value)
 
-### Patients (Individual & combined) with non-transformed data
+#### Creating a subset
+
+P12_cat_MCL <- subset (P12_cat, P12_protein=="MCL",
+                     select=P12_protein:P12_value)
+P12_cat_BCL <- subset (P12_cat, P12_protein=="BCL",
+                     select=P12_protein:P12_value)
+P12_cat_IgG <- subset (P12_cat, P12_protein=="IgG",
+                     select=P12_protein:P12_value)
+                     
+#### Plotting multiple plots in the same page
+
+P1a <- ggplot (P12_cat_MCL, aes(fill=P12_level, y=P12_value, x=P12_stage)) + 
+    geom_bar( stat="identity", position="fill")
+P1 <- P1a + labs(title = "MCL") + theme(legend.position="none") + xlab(NULL) + ylab(NULL)
+P2a <- ggplot (P12_cat_BCL, aes(fill=P12_level, y=P12_value, x=P12_stage)) + 
+    geom_bar( stat="identity", position="fill")
+P2 <- P2a + labs(title = "BCL") + theme(legend.position="none") + xlab(NULL) + ylab(NULL)
+P3a <- ggplot (P12_cat_IgG, aes(fill=P12_level, y=P12_value, x=P12_stage)) + 
+    geom_bar( stat="identity", position="fill")
+P3 <- P3a + labs(title = "IgG") + xlab(NULL) + ylab(NULL)
+multiplot(P1, P2, P3, cols=3)
+
+#### 3D SCATTERPLOTS (CONTINUOUS DATA)
+
+##### Patients (Individual & combined) with non-transformed data
 
 library (scatterplot3d)
 with(P12,
@@ -213,7 +974,7 @@ with(All,
                  zlab="IgG"
                  ))
 
-### Patients (Individual & combined) with percentile-transformed data
+##### Patients (Individual & combined) with percentile-transformed data
 
 library (scatterplot3d)
 with(P12,
@@ -290,11 +1051,10 @@ with(All,
                  ))
 
 
+#### STACKED COLUMN CHART (CATEGORICAL DATA)
 
-## STACKED COLUMN CHART (CATEGORICAL DATA)
-
-### Patient12
-#### Categorization and summation 
+##### Patient12
+###### Categorization and summation 
 P12_MCL_Pre_H <- sum (P12$Stage == "Red" & P12$MCL_r == "High")
 P12_MCL_Pre_M <- sum (P12$Stage == "Red" & P12$MCL_r == "Medium")
 P12_MCL_Pre_L <- sum (P12$Stage=="Red" & P12$MCL_r=="Low")
