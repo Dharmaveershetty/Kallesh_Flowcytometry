@@ -7,13 +7,13 @@
 ### Re-arrange, rename, percentile transform, and categorize patient data
 
 library("dplyr")
-P12b1_pre <- P12a1_pre [-1,c(7,14,15)]             #delete 1st row #select 7,14,15 columns
+P12b1_pre <- P12a1_pre [-1,c(7,8,14,15)]             #delete 1st row #select 7,8,14,15 columns
 P12b2_pre <- P12a2_pre [-1,c(15,17)]               #delete 1st row #select 15th column and dummy 17th column (to avoid converting to value)
-P12b3_post <- P12a3_post [-1,c(7,14,15)]           #delete 1st row #select 7,14,15 columns
+P12b3_post <- P12a3_post [-1,c(7,8,14,15)]           #delete 1st row #select 7,8,14,15 columns
 P12b4_post <- P12a4_post [-1,c(15,17)]             #delete 1st row #select 15th column and dummy 17th column (to avoid converting to value)
-colnames (P12b1_pre) <- c("MCL","BCL2","BCLXL")    #rename column names
+colnames (P12b1_pre) <- c("MCL","BIM","BCL2","BCLXL")    #rename column names
 colnames (P12b2_pre) <- c("BFI", "Dummy")          
-colnames (P12b3_post) <- c("MCL","BCL2","BCLXL")   
+colnames (P12b3_post) <- c("MCL","BIM","BCL2","BCLXL")   
 colnames (P12b4_post) <- c("BFI", "Dummy")         
 P12b1_pre$Stage <- "Pre"                           #creating stage identifier variable (pre/post)
 P12b2_pre$Stage <- "Pre"                           
@@ -24,16 +24,21 @@ P12c2 <- rbind (P12b2_pre, P12b4_post)
 P12c1$Patient <- "P12"                              #Creating Patient identifier variable
 P12c2$Patient <- "P12"                              
 P12c1$MCL <- as.numeric(as.character(P12c1$MCL))        #Converting MCL from factor into numerical
+P12c1$BIM <- as.numeric(as.character(P12c1$BIM))        #Converting BIM from factor into numerical
 P12c1$BCL2 <- as.numeric(as.character(P12c1$BCL2))      #Converting BCL2 from factor into numerical
 P12c1$BCLXL <- as.numeric(as.character(P12c1$BCLXL))    #Converting BCLXL from factor into numerical
 P12c2$BFI <- as.numeric(as.character(P12c2$BFI))        #Converting BFI from factor into numerical
 P12c1$MCL_p <- ecdf(P12c1$MCL)(P12c1$MCL)               #Creating a percentile variable for MCL
+P12c1$BIM_p <- ecdf(P12c1$BIM)(P12c1$BIM)               #Creating a percentile variable for BIM
 P12c1$BCL2_p <- ecdf(P12c1$BCL2)(P12c1$BCL2)            #Creating a percentile variable for BCL2
 P12c1$BCLXL_p <- ecdf(P12c1$BCLXL)(P12c1$BCLXL)         #Creating a percentile variable for BCLXL
 P12c2$BFI_p <- ecdf(P12c2$BFI)(P12c2$BFI)               #Creating a percentile variable for BFI
 P12c1$MCL_r <- ifelse(P12c1$MCL_p <= 0.33, 'Low',
          ifelse(P12c1$MCL_p <= 0.66, 'Medium', 
          'High'))                                       #Creating ordinal percentile variables
+P12c1$BIM_r <- ifelse(P12c1$BIM_p <= 0.33, 'Low',
+         ifelse(P12c1$BIM_p <= 0.66, 'Medium', 
+         'High'))                                       
 P12c1$BCL2_r <- ifelse(P12c1$BCL2_p <= 0.33, 'Low',   
          ifelse(P12c1$BCL2_p <= 0.66, 'Medium', 
          'High'))
@@ -44,66 +49,78 @@ P12c2$BFI_r <- ifelse(P12c2$BFI_p <= 0.33, 'Low',
          ifelse(P12c2$BFI_p <= 0.66, 'Medium', 
          'High'))
 P12d1_pre <- subset (P12c1, P12c1$Stage=="Pre",        #Creating 'pre' and 'post' subsets
-                    select = c(9:11))
+                    select = c(11:14))
 P12d2_pre <- subset (P12c2, P12c2$Stage=="Pre", 
                     select = c(6))
 P12d3_post <- subset (P12c1, P12c1$Stage=="Post", 
-                    select = c(9:11))
+                    select = c(11:14))
 P12d4_post <- subset (P12c2, P12c2$Stage=="Post", 
                     select = c(6))
 P12e1_pre_MCL <- P12d1_pre %>% dplyr::count (MCL_r) %>%               #Creating tables
                 dplyr::rename (Level=MCL_r) %>%
                 dplyr::mutate (Protein = "MCL", Stage = "i.Pre") %>%
                 dplyr::select (Protein, Stage, Level, n)
-P12e2_pre_BCL2 <- P12d1_pre %>% dplyr::count (BCL2_r) %>%               
+P12e2_pre_BIM <- P12d1_pre %>% dplyr::count (BIM_r) %>%               #Creating tables
+                dplyr::rename (Level=BIM_r) %>%
+                dplyr::mutate (Protein = "BIM", Stage = "i.Pre") %>%
+                dplyr::select (Protein, Stage, Level, n)
+P12e3_pre_BCL2 <- P12d1_pre %>% dplyr::count (BCL2_r) %>%               
                dplyr::rename (Level=BCL2_r) %>%
                dplyr::mutate (Protein = "BCL2", Stage = "i.Pre") %>%
                dplyr::select (Protein, Stage, Level, n)
-P12e3_pre_BCLXL <- P12d1_pre %>% dplyr::count (BCLXL_r) %>%               
+P12e4_pre_BCLXL <- P12d1_pre %>% dplyr::count (BCLXL_r) %>%               
                dplyr::rename (Level=BCLXL_r) %>%
                dplyr::mutate (Protein = "BCLXL", Stage = "i.Pre") %>%
                dplyr::select (Protein, Stage, Level, n)
-P12e4_pre_BFI <- P12d2_pre %>% dplyr::count (BFI_r) %>%               
+P12e5_pre_BFI <- P12d2_pre %>% dplyr::count (BFI_r) %>%               
                dplyr::rename (Level=BFI_r) %>%
                dplyr::mutate (Protein = "BFI", Stage = "i.Pre") %>%
                dplyr::select (Protein, Stage, Level, n)
-P12e5_post_MCL <- P12d3_post %>% dplyr::count (MCL_r) %>%               
+P12e6_post_MCL <- P12d3_post %>% dplyr::count (MCL_r) %>%               
                dplyr::rename (Level=MCL_r) %>%
                dplyr::mutate (Protein = "MCL", Stage = "ii.Post") %>%
                dplyr::select (Protein, Stage, Level, n)
-P12e6_post_BCL2 <- P12d3_post %>% dplyr::count (BCL2_r) %>%               
+P12e7_post_BIM <- P12d3_post %>% dplyr::count (BIM_r) %>%               
+               dplyr::rename (Level=BIM_r) %>%
+               dplyr::mutate (Protein = "BIM", Stage = "ii.Post") %>%
+               dplyr::select (Protein, Stage, Level, n)          
+P12e8_post_BCL2 <- P12d3_post %>% dplyr::count (BCL2_r) %>%               
                dplyr::rename (Level=BCL2_r) %>%
                dplyr::mutate (Protein = "BCL2", Stage = "ii.Post") %>%
                dplyr::select (Protein, Stage, Level, n)
-P12e7_post_BCLXL <- P12d3_post %>% dplyr::count (BCLXL_r) %>%               
+P12e9_post_BCLXL <- P12d3_post %>% dplyr::count (BCLXL_r) %>%               
                dplyr::rename (Level=BCLXL_r) %>%
                dplyr::mutate (Protein = "BCLXL", Stage = "ii.Post") %>%
                dplyr::select (Protein, Stage, Level, n)
-P12e8_post_BFI <- P12d4_post %>% dplyr::count (BFI_r) %>%               
+P12e10_post_BFI <- P12d4_post %>% dplyr::count (BFI_r) %>%               
                dplyr::rename (Level=BFI_r) %>%
                dplyr::mutate (Protein = "BFI", Stage = "ii.Post") %>%
-               dplyr::select (Protein, Stage, Level, n)  
-P12f1_MCL <- rbind (P12e1_pre_MCL,P12e5_post_MCL)               #binding (merging) the pre and post data for each protein
-P12f2_BCL2 <- rbind (P12e2_pre_BCL2,P12e6_post_BCL2)
-P12f3_BCLXL <- rbind (P12e3_pre_BCLXL,P12e7_post_BCLXL)
-P12f4_BFI <- rbind (P12e4_pre_BFI,P12e8_post_BFI)
+               dplyr::select (Protein, Stage, Level, n)
+P12f1_MCL <- rbind (P12e1_pre_MCL,P12e6_post_MCL)               #binding (merging) the pre and post data for each protein
+P12f2_BIM <- rbind (P12e2_pre_BIM,P12e7_post_BIM)
+P12f3_BCL2 <- rbind (P12e3_pre_BCL2,P12e8_post_BCL2)
+P12f4_BCLXL <- rbind (P12e4_pre_BCLXL,P12e9_post_BCLXL)
+P12f5_BFI <- rbind (P12e5_pre_BFI,P12e10_post_BFI)
 
 ### Plotting
 
 library (ggplot2)
 P12g1 <- ggplot (P12f1_MCL, aes (fill=Level, y=n, x=Stage)) + 
     geom_bar( stat="identity", position="fill")
-P12g2 <- ggplot (P12f2_BCL2, aes (fill=Level, y=n, x=Stage)) + 
+P12g2 <- ggplot (P12f3_BCL2, aes (fill=Level, y=n, x=Stage)) + 
     geom_bar( stat="identity", position="fill")
-P12g3 <- ggplot (P12f3_BCLXL, aes (fill=Level, y=n, x=Stage)) + 
+P12g3 <- ggplot (P12f4_BCLXL, aes (fill=Level, y=n, x=Stage)) + 
     geom_bar( stat="identity", position="fill")               
-P12g4 <- ggplot (P12f4_BFI, aes (fill=Level, y=n, x=Stage)) + 
+P12g4 <- ggplot (P12f5_BFI, aes (fill=Level, y=n, x=Stage)) + 
     geom_bar( stat="identity", position="fill")
-P12g5 <- P12g1 + labs (title = "MCL") + theme (legend.position="none") + xlab(NULL) + ylab(NULL) 
-P12g6 <- P12g2 + labs (title = "BCL2") + theme (legend.position="none") + xlab(NULL) + ylab(NULL)
-P12g7 <- P12g3 + labs (title = "BCLXL") + theme (legend.position="none") + xlab(NULL) + ylab(NULL)
-P12g8 <- P12g4 + labs (title = "BFI") + theme (legend.position="none") + xlab(NULL) + ylab(NULL)
-multiplot(P12g5, P12g6, P12g7, P12g8, cols=4)
+P12g5 <- ggplot (P12f2_BIM, aes (fill=Level, y=n, x=Stage)) + 
+    geom_bar( stat="identity", position="fill")
+P12g6 <- P12g1 + labs (title = "MCL") + theme (legend.position="none") + xlab(NULL) + ylab(NULL) 
+P12g7 <- P12g2 + labs (title = "BCL2") + theme (legend.position="none") + xlab(NULL) + ylab(NULL)
+P12g8 <- P12g3 + labs (title = "BCLXL") + theme (legend.position="none") + xlab(NULL) + ylab(NULL)
+P12g9 <- P12g4 + labs (title = "BFI") + theme (legend.position="none") + xlab(NULL) + ylab(NULL)
+P12g10 <- P12g5 + labs (title = "BIM") + theme (legend.position="none") + xlab(NULL) + ylab(NULL)
+multiplot (P12g6, P12g7, P12g8, P12g9, p12g10, cols=5)
 
 
 ### Repeating the code for other patients 
